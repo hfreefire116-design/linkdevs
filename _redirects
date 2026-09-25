@@ -1,0 +1,11 @@
+# ── LinkDevs Netlify Redirects ──────────────────────────────────────────────
+
+# Pretty URL: /gVwnBg  →  unlock.html?id=gVwnBg
+# Must come AFTER specific routes so /admin and /unlock don't get caught
+/unlock   /unlock.html   301
+/admin    /admin.html    301
+
+# Catch-all: any single path segment = a short link ID
+# Netlify rewrites (200) so browser URL stays as /gVwnBg (not ?id=)
+/:id      /unlock.html?id=:id   200
+

@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+<title>Verification Complete</title>
+<style>
+    @keyframes ping      { 75%,100% { transform:scale(2.2); opacity:0; } }
+    @keyframes spin      { to { transform:rotate(360deg); } }
+    @keyframes slideDown { from { transform:translate(-50%,-100%); opacity:0; } to { transform:translate(-50%,0); opacity:1; } }
+    @keyframes fadeUp    { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
+    @keyframes popIn     { 0% { transform:scale(0.88); opacity:0; } 65% { transform:scale(1.03); } 100% { transform:scale(1); opacity:1; } }
+
+    *, *::before, *::after { box-sizing:border-box; }
+    nav,.site-footer,.ads,#consent-banner,.header-nav { display:none !important; }
+
+    /* overlay + card — pixel-perfect copy of index.html */
+    #unlock-overlay {
+        align-items:center; background-color:#f8f9fa; display:flex;
+        font-family:Inter,sans-serif; inset:0px; justify-content:center;
+        padding:clamp(12px,3vw,20px); position:fixed; z-index:9999;
+    }
+    #unlock-card {
+        background:#fff; border-radius:24px; border:1px solid #f3f4f6;
+        display:flex; flex-direction:column; max-height:90vh; max-width:420px;
+        padding:clamp(20px,5vw,28px); position:relative; text-align:center;
+        width:100%; overflow:hidden;
+    }
+
+    /* dark mode — same rules as index */
+    body.dark-mode #unlock-overlay { background-color:#111 !important; }
+    body.dark-mode #unlock-card    { background:#1e1e1e !important; border-color:#2a2a2a !important; color:#e0e0e0 !important; }
+    body.dark-mode #main-title     { color:#e0e0e0 !important; }
+    body.dark-mode #status-badge   { background:#2a2a2a !important; border-color:#333 !important; }
+
+    /* scrollable area — same as index */
+    .scrollable-area { overflow-y:auto; overflow-x:hidden; padding-right:6px; margin-right:-6px; }
+    .scrollable-area::-webkit-scrollbar       { width:5px; }
+    .scrollable-area::-webkit-scrollbar-track { background:transparent; }
+    .scrollable-area::-webkit-scrollbar-thumb { background:#d1d5db; border-radius:10px; }
+    .scrollable-area::-webkit-scrollbar-thumb:hover { background:#9ca3af; }
+
+    /* toast — same as index */
+    #sys-toast {
+        position:fixed; top:20px; left:50%; transform:translateX(-50%);
+        color:white; padding:12px 24px; border-radius:50px; font-weight:700;
+        font-size:13px; z-index:10000; animation:slideDown 0.3s ease;
+        text-align:center; width:320px; max-width:90%; box-sizing:border-box;
+        border:1px solid rgba(255,255,255,0.2); box-shadow:0 4px 12px rgba(0,0,0,0.15);
+        display:none;
+    }
+
+    /* countdown ring — hidden (no countdown) */
+    #ring-wrap {
+        position:relative; width:10px; height:10px; display:none;
+        align-items:center; justify-content:center;
+    }
+    #ring-wrap svg   { position:absolute; top:0; left:0; transform:rotate(-90deg); overflow:visible; }
+    #ring-bg         { fill:none; stroke:#d1fae5; stroke-width:2; }
+    #ring-track      {
+        fill:none; stroke:#10b981; stroke-width:2; stroke-linecap:round;
+        stroke-dasharray:31.4; stroke-dashoffset:0;
+        transition:stroke-dashoffset .92s linear;
+    }
+    /* number shown just to the right, inside the badge text slot */
+    #ring-num { font-size:11px; font-weight:800; color:inherit; }
+
+    /* ping dot shown immediately (no countdown) */
+    .ping-dot { display:flex; height:6px; position:relative; width:6px; }
+    .ping-dot .ping-anim {
+        animation:1.5s cubic-bezier(0,0,0.2,1) 0s infinite normal none running ping;
+        background-color:currentcolor; border-radius:50%;
+        height:100%; opacity:0.75; position:absolute; width:100%;
+    }
+    .ping-dot .ping-solid {
+        background-color:currentcolor; border-radius:50%;
+        height:6px; position:relative; width:6px;
+    }
+</style>
+</head>
+<script>
+var AD_URLS = [
+    'https://omg10.com/4/10801428',
+    'https://wiretournament.com/itpvy9qag?key=35bf31ca3ca9b32abaa217c6ac1defc9',
+    'https://wiretournament.com/itpvy9qag?key=35bf31ca3ca9b32abaa217c6ac1defc9'
+];
+var TOTAL_CLICKS = AD_URLS.length; // 3
+
+/* BUG FIX: ใช้ localStorage แทน sessionStorage
+   เพราะ sessionStorage ถูก clear เมื่อ tab ใหม่เปิด/ปิด
+   แต่ localStorage อยู่ได้แม้ผู้ใช้กด Back กลับมา */
+var AD_CLICKS_KEY = 'lk_ad_clicks';
+var adClicks = parseInt(localStorage.getItem(AD_CLICKS_KEY) || '0', 10);
+
+function doRedirect() {
+    if (adClicks >= TOTAL_CLICKS) return;
+    var url = AD_URLS[adClicks];
+    adClicks++;
+    localStorage.setItem(AD_CLICKS_KEY, adClicks); // บันทึกก่อน redirect
+    window.location.href = url;
+}
+</script>
+<script type="text/javascript" data-cfasync="false">
+/*<![CDATA[/* */
+(function(){var n=window,r="e114cb5628866af461673d8678206369",t=[["siteId",72-593-933+848-235+5320503],["minBid",0],["popundersPerIP","0"],["delayBetween",0],["default",false],["defaultPerDay",0],["topmostLayer","auto"]],f=["d3d3LmludGVsbGlwb3B1cC5jb20vaXdQRlMvT1VQWi9waW5kZXguanM=","ZDNtcjd5MTU0ZDJxZzUuY2xvdWRmcm9udC5uZXQvdWJpZ3ZpZGVvLm1pbi5qcw=="],m=-1,z,y,e=function(){clearTimeout(y);m++;if(f[m]&&!(1815049079000<(new Date).getTime()&&1<m)){z=n.document.createElement("script");z.type="text/javascript";z.async=!0;var a=n.document.getElementsByTagName("script")[0];z.src="https://"+atob(f[m]);z.crossOrigin="anonymous";z.onerror=e;z.onload=function(){clearTimeout(y);n[r.slice(0,16)+r.slice(0,16)]||e()};y=setTimeout(e,5E3);a.parentNode.insertBefore(z,a)}};if(!n[r]){try{Object.freeze(n[r]=t)}catch(e){}e()}})();
+/*]]>/* */
+</script>
+<body>
+
+<div id="sys-toast"></div>
+
+<div id="unlock-overlay">
+  <div id="unlock-card">
+
+    <!-- Image 16:9 -->
+    <div id="unlock-image-wrap" style="display:none;width:100%;aspect-ratio:16/9;border-radius:12px;overflow:hidden;margin-bottom:16px;flex-shrink:0;background:#ddd;">
+        <img id="unlock-image" alt="" style="width:100%;height:100%;object-fit:cover;display:block;"/>
+    </div>
+
+    <!-- Video 16:9 -->
+    <div id="unlock-video-wrap" style="display:none;width:100%;aspect-ratio:16/9;border-radius:12px;overflow:hidden;margin-bottom:16px;flex-shrink:0;background:#000;">
+        <iframe id="unlock-video-frame" allowfullscreen="true" frameborder="0" style="width:100%;height:100%;display:block;"></iframe>
+    </div>
+
+    <!-- Header — identical structure to index.html -->
+    <div style="align-items:center;display:flex;flex-direction:column;flex-shrink:0;margin-bottom:20px;">
+
+        <!-- Icon box -->
+        <div id="status-icon-box" style="align-items:center;background:#f0fdf4;border-radius:14px;color:#10b981;display:flex;height:48px;justify-content:center;margin-bottom:12px;transition:0.3s;width:48px;">
+            <span id="status-icon" style="display:flex;"></span>
+        </div>
+
+        <h2 id="main-title" style="color:#111827;font-size:18px;font-weight:800;letter-spacing:-0.5px;margin:0 0 10px;">Verification Complete</h2>
+
+        <!-- Badge pill -->
+        <div id="status-badge" style="align-items:center;background:#ffffff;border-radius:20px;border:1px solid #f3f4f6;color:#10b981;display:inline-flex;font-size:11px;font-weight:800;gap:6px;letter-spacing:0.5px;padding:4px 12px;transition:0.3s;">
+
+            <!-- countdown ring (replaces ping dot while counting) -->
+            <div id="ring-wrap">
+                <svg width="10" height="10" viewBox="0 0 10 10">
+                    <circle id="ring-bg"    cx="5" cy="5" r="4"/>
+                    <circle id="ring-track" cx="5" cy="5" r="4"/>
+                </svg>
+            </div>
+
+            <!-- ping dot (hidden until countdown ends) -->
+            <span class="ping-dot" id="ping-dot">
+                <span class="ping-anim"></span>
+                <span class="ping-solid"></span>
+            </span>
+
+            <span id="status-text">SUCCESS</span>
+        </div>
+    </div>
+
+    <!-- Task container -->
+    <div class="scrollable-area" id="task-container" style="display:flex;flex-direction:column;flex-shrink:1;gap:10px;text-align:left;">
+
+        <!-- Phase 1: countdown placeholder (hidden — no countdown) -->
+        <div id="waiting-card" style="display:none;padding:20px;text-align:center;border-radius:14px;background:linear-gradient(145deg,#ffffff,#f9fafb);border:1px solid #e5e7eb;">
+            <div style="width:48px;height:48px;background:rgb(232,240,254);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 12px;color:#007bff;border:3px solid #dbeafe;">
+                <div style="width:20px;height:20px;border:2.5px solid currentColor;border-top-color:transparent;border-radius:50%;animation:spin .8s linear infinite;"></div>
+            </div>
+            <h3 style="font-size:15px;font-weight:800;color:#111827;margin:0 0 6px 0;">Preparing Content...</h3>
+            <p style="font-size:12px;color:#6b7280;margin:0;">Please wait while we load your link.</p>
+        </div>
+
+        <!-- Phase 2: click 3 times (shown immediately) -->
+        <div id="click-card" style="display:block;padding:20px;text-align:center;border-radius:14px;background:linear-gradient(145deg,#ffffff,#f9fafb);border:1px solid #e5e7eb;animation:fadeUp .35s ease both;">
+            <p style="font-size:12px;color:#6b7280;margin:0 0 14px 0;font-weight:600;">Confirm you are human</p>
+            <!-- dots -->
+            <div style="display:flex;justify-content:center;gap:12px;margin-bottom:18px;align-items:center;">
+                <span id="dot-0" style="width:10px;height:10px;border-radius:50%;background:#e5e7eb;transition:background .25s,transform .25s,box-shadow .25s;display:inline-block;"></span>
+                <span id="dot-1" style="width:10px;height:10px;border-radius:50%;background:#e5e7eb;transition:background .25s,transform .25s,box-shadow .25s;display:inline-block;"></span>
+                <span id="dot-2" style="width:10px;height:10px;border-radius:50%;background:#e5e7eb;transition:background .25s,transform .25s,box-shadow .25s;display:inline-block;"></span>
+            </div>
+            <button id="click-btn"
+                onclick="handleClick()"
+                style="cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;width:100%;height:52px;background:linear-gradient(135deg,#007bff 0%,#0056b3 100%);color:white;border:none;border-radius:12px;font-weight:800;font-size:15px;font-family:inherit;transition:transform .1s,filter .1s;">
+                Click to Confirm&nbsp;<span id="click-count-label">(1 / 3)</span>
+            </button>
+        </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+    /* ── icon helper (subset of index.html's ic()) ── */
+    const ic = (k, s = 24) => {
+        const paths = {
+            check:  '<path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>',
+            arrow:  '<line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/>',
+            key:    '<path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/>',
+            copy:   '<rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>',
+            unlock: '<rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/>',
+        };
+        const p = paths[k] || paths.check;
+        return `<svg xmlns="http://www.w3.org/2000/svg" width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${p}</svg>`;
+    };
+
+    /* ── toast ── */
+    function showToast(msg, isError = false) {
+        const t = document.getElementById('sys-toast');
+        t.style.background = isError ? '#ef4444' : '#10b981';
+        t.innerText = msg;
+        t.style.display = 'block';
+        clearTimeout(t._timer);
+        t._timer = setTimeout(() => { t.style.display = 'none'; }, 3500);
+    }
+
+    /* ── youtube embed ── */
+    function toYouTubeEmbed(url) {
+        const m = url.match(/(?:youtu\.be\/|youtube\.com\/(?:.*[?&]v=|.*\/|.*embed\/|shorts\/))([A-Za-z0-9_-]{11})/);
+        return m ? 'https://www.youtube.com/embed/' + m[1] + '?autoplay=0' : null;
+    }
+
+    /* ── read payload (unlock.html writes to localStorage) ──
+       BUG FIX: ไม่ลบ localStorage ทันที เพราะถ้าผู้ใช้กด Back กลับมา
+       หลัง ad redirect เนื้อหาจะหายไป → ลบเฉพาะตอน showContent() เท่านั้น ── */
+    const mode    = localStorage.getItem('lk_done_mode')    || 'url';
+    const content = localStorage.getItem('lk_done_content') || '';
+    const image   = localStorage.getItem('lk_done_image')   || '';
+    const video   = localStorage.getItem('lk_done_video')   || '';
+
+    function clearPayload() {
+        ['lk_done_mode','lk_done_content','lk_done_image','lk_done_video'].forEach(k => localStorage.removeItem(k));
+    }
+
+    /* ── dark mode (Telegram-aware) ── */
+    (function () {
+        const tg = window.Telegram && window.Telegram.WebApp;
+        if ((tg && tg.colorScheme === 'dark') ||
+            (!tg && window.matchMedia('(prefers-color-scheme:dark)').matches)) {
+            document.body.classList.add('dark-mode');
+        }
+    })();
+
+    /* ── media ── */
+    (function () {
+        if (video) {
+            const wrap  = document.getElementById('unlock-video-wrap');
+            const frame = document.getElementById('unlock-video-frame');
+            frame.src = toYouTubeEmbed(video) || video;
+            wrap.style.display = 'block';
+        } else if (image) {
+            const wrap = document.getElementById('unlock-image-wrap');
+            const img  = document.getElementById('unlock-image');
+            img.src = image;
+            img.onerror = () => { wrap.style.display = 'none'; };
+            img.onload  = () => { wrap.style.display = 'block'; };
+        }
+    })();
+
+    /* ── safety check: ถ้าไม่มี content เลย (เข้าหน้านี้โดยตรง ไม่ผ่าน unlock.html)
+       ให้ redirect กลับไปหน้าแรก แทนที่จะแสดง click card ที่ไม่มี payload ── */
+    if (!content && !mode) {
+        window.location.replace('/');
+    }
+
+    /* ── show click card immediately (no countdown) ── */
+    showComplete();
+
+    /* ── phase 2 : click confirmation ── */
+    // ใช้ adClicks จาก localStorage เป็น source of truth (persistent ข้าม tab)
+
+    function refreshDots() {
+        for (let i = 0; i < TOTAL_CLICKS; i++) {
+            const dot = document.getElementById('dot-' + i);
+            if (!dot) continue;
+            if (i < adClicks) {
+                // completed — solid green with checkmark feel
+                dot.style.background = '#10b981';
+                dot.style.transform  = 'scale(1.15)';
+                dot.style.boxShadow  = '0 0 0 2px #d1fae5';
+            } else if (i === adClicks) {
+                // current step — blue pulsing
+                dot.style.background = '#007bff';
+                dot.style.transform  = 'scale(1.25)';
+                dot.style.boxShadow  = '0 0 0 3px #bfdbfe';
+            } else {
+                // pending — light grey
+                dot.style.background = '#e5e7eb';
+                dot.style.transform  = 'scale(1)';
+                dot.style.boxShadow  = 'none';
+            }
+        }
+        const label = document.getElementById('click-count-label');
+        if (label) {
+            if (adClicks < TOTAL_CLICKS) {
+                label.innerText = `(${adClicks + 1} / ${TOTAL_CLICKS})`;
+            }
+        }
+    }
+
+    function handleClick() {
+        if (adClicks >= TOTAL_CLICKS) {
+            // ครบแล้ว → แสดงเนื้อหา
+            showContent();
+            return;
+        }
+
+        // animate button
+        const btn = document.getElementById('click-btn');
+        btn.style.transform = 'scale(0.96)';
+        setTimeout(() => { btn.style.transform = 'scale(1)'; }, 120);
+
+        // redirect (adClicks จะถูก +1 และบันทึกใน doRedirect)
+        doRedirect();
+    }
+
+    /* ── show click card (called on load) ── */
+    function showComplete() {
+        /* 1. Icon box → unlock, green */
+        const iconBox = document.getElementById('status-icon-box');
+        iconBox.style.background = '#f0fdf4';
+        iconBox.style.color      = '#10b981';
+        document.getElementById('status-icon').innerHTML = ic('unlock');
+
+        /* 2. Title */
+        document.getElementById('main-title').innerText = 'Verification Complete';
+
+        /* 3. Badge → green + swap ring for ping dot */
+        const badge = document.getElementById('status-badge');
+        badge.style.color       = '#10b981';
+        badge.style.background  = '#ffffff';
+        badge.style.borderColor = '#f3f4f6';
+
+        document.getElementById('ring-wrap').style.display = 'none';
+        document.getElementById('ping-dot').style.display  = 'flex';
+        document.getElementById('status-text').innerText   = 'SUCCESS';
+
+        /* 4. ถ้าครบ 3 คลิกแล้ว → ข้ามไปแสดงเนื้อหาเลย */
+        if (adClicks >= TOTAL_CLICKS) {
+            document.getElementById('waiting-card').style.display = 'none';
+            document.getElementById('click-card').style.display   = 'none';
+            showContent();
+            return;
+        }
+
+        /* 5. ยังไม่ครบ → แสดง click card พร้อม restore dots */
+        document.getElementById('waiting-card').style.display = 'none';
+        document.getElementById('click-card').style.display   = 'block';
+        refreshDots();
+    }
+
+    /* ── phase 3 : reveal final content ── */
+    function showContent() {
+        // BUG FIX: ล้าง ad click counter และ payload หลังแสดงเนื้อหาแล้ว
+        // ป้องกันการวนซ้ำรอบถัดไปเมื่อผู้ใช้เปิดลิงก์ใหม่
+        localStorage.removeItem(AD_CLICKS_KEY);
+        clearPayload();
+
+        document.getElementById('click-card').style.display = 'none';
+        const container = document.getElementById('task-container');
+
+        if (mode === 'url') {
+            container.innerHTML = `
+                <div style="padding:20px;text-align:center;border-radius:14px;background:linear-gradient(145deg,#ffffff,#f9fafb);border:1px solid #e5e7eb;animation:fadeUp .4s ease both;">
+                    <div style="width:48px;height:48px;background:#f0fdf4;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 12px;color:#10b981;border:3px solid #dcfce7;">${ic('check',24)}</div>
+                    <h3 style="font-size:16px;font-weight:800;color:#111827;margin:0 0 6px 0;">Destination Ready!</h3>
+                    <p style="font-size:12px;color:#6b7280;margin:0 0 16px 0;">Your secure link has been verified.</p>
+                    <a href="${content}" target="_blank" rel="noopener nofollow"
+                       style="display:flex;align-items:center;justify-content:center;gap:8px;width:100%;height:48px;background:linear-gradient(135deg,#007bff 0%,#0056b3 100%);color:white;text-decoration:none;font-weight:800;font-size:14px;border-radius:12px;animation:popIn .45s ease both;">
+                        <span>PROCEED</span>${ic('arrow',16)}
+                    </a>
+                </div>`;
+
+        } else if (mode === 'key') {
+            const generatedKey = (Math.random().toString(36).substring(2,10) +
+                                  Math.random().toString(36).substring(2,10)).toUpperCase();
+            container.innerHTML = `
+                <div style="padding:20px;text-align:center;border-radius:14px;background:linear-gradient(145deg,#ffffff,#f9fafb);border:1px solid #e5e7eb;animation:fadeUp .4s ease both;">
+                    <div style="width:48px;height:48px;background:#e8f0fe;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 12px;color:#007bff;border:3px solid #dbeafe;">${ic('key')}</div>
+                    <h3 style="font-size:16px;font-weight:800;color:#111827;margin:0 0 6px 0;">Key Generated!</h3>
+                    <p style="font-size:12px;color:#6b7280;margin:0 0 16px 0;">Copy the key below:</p>
+                    <div style="background:#f3f4f6;padding:12px;border-radius:10px;border:2px dashed #d1d5db;font-family:monospace;font-size:16px;font-weight:900;color:#007bff;margin-bottom:16px;letter-spacing:1px;word-break:break-all;">${generatedKey}</div>
+                    <button onclick="navigator.clipboard.writeText('${generatedKey}');showToast('✅ Key copied!')"
+                            style="cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;width:100%;height:48px;background:linear-gradient(135deg,#007bff 0%,#0056b3 100%);color:white;border:none;border-radius:12px;font-weight:800;font-size:14px;font-family:inherit;animation:popIn .45s ease both;">
+                        <span>Copy Key</span>${ic('copy',16)}
+                    </button>
+                </div>`;
+
+        } else {
+            const escaped = (content||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+            const forCopy = (content||'').replace(/`/g,'\\`');
+            container.innerHTML = `
+                <div style="text-align:left;border:1px solid #e5e7eb;border-radius:12px;overflow:hidden;animation:fadeUp .4s ease both;">
+                    <div style="display:flex;align-items:center;justify-content:space-between;background:linear-gradient(135deg,#1f2937 0%,#111827 100%);padding:10px 14px;border-radius:12px 12px 0 0;">
+                        <span style="font-size:11px;font-weight:700;color:#9ca3af;text-transform:uppercase;">Secret Content</span>
+                        <button onclick="navigator.clipboard.writeText(\`${forCopy}\`);showToast('✅ Copied!')"
+                                style="background:rgba(255,255,255,0.15);border:none;color:white;padding:4px 10px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;">Copy</button>
+                    </div>
+                    <div style="padding:16px;border-top:none;border-radius:0 0 12px 12px;background:#fafafa;max-height:200px;overflow-y:auto;">
+                        <div style="font-size:13px;color:#374151;white-space:pre-wrap;font-family:monospace;">${escaped}</div>
+                    </div>
+                </div>`;
+        }
+    }
+</script>
+</body>
+</html>

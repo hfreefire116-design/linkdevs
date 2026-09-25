@@ -1,0 +1,9 @@
+User-agent: *
+Allow: /
+
+# Block internal tool pages from indexing
+Disallow: /admin.html
+Disallow: /unlock.html
+Disallow: /success.html
+
+Sitemap: https://linkdevs.netlify.app/sitemap.xml

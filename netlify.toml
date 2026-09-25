@@ -1,0 +1,73 @@
+# ── LinkDevs — netlify.toml ───────────────────────────────────────────────────
+# Docs: https://docs.netlify.com/configure-builds/file-based-configuration/
+
+# ── Build settings ────────────────────────────────────────────────────────────
+[build]
+  publish = "."
+
+# ── Security & performance headers ────────────────────────────────────────────
+
+# Landing page — public, cache aggressively
+[[headers]]
+  for = "/"
+  [headers.values]
+    X-Frame-Options             = "SAMEORIGIN"
+    X-Content-Type-Options      = "nosniff"
+    X-XSS-Protection            = "1; mode=block"
+    Referrer-Policy             = "strict-origin-when-cross-origin"
+    Permissions-Policy          = "camera=(), microphone=(), geolocation=()"
+    Cache-Control               = "public, max-age=3600, stale-while-revalidate=86400"
+
+# Unlock page — dynamic content, no cache
+[[headers]]
+  for = "/unlock.html"
+  [headers.values]
+    X-Frame-Options             = "DENY"
+    X-Content-Type-Options      = "nosniff"
+    X-XSS-Protection            = "1; mode=block"
+    Referrer-Policy             = "no-referrer"
+    Cache-Control               = "no-store, no-cache, must-revalidate"
+
+# Admin page — no indexing, no cache
+[[headers]]
+  for = "/admin.html"
+  [headers.values]
+    X-Robots-Tag                = "noindex, nofollow"
+    X-Frame-Options             = "DENY"
+    X-Content-Type-Options      = "nosniff"
+    Cache-Control               = "no-store"
+
+# Success page — no indexing, no cache
+[[headers]]
+  for = "/success.html"
+  [headers.values]
+    X-Robots-Tag                = "noindex, nofollow"
+    X-Frame-Options             = "DENY"
+    X-Content-Type-Options      = "nosniff"
+    Cache-Control               = "no-store"
+
+# Static assets — long-lived cache
+[[headers]]
+  for = "/*.png"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/*.ico"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/*.svg"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/robots.txt"
+  [headers.values]
+    Cache-Control = "public, max-age=86400"
+
+[[headers]]
+  for = "/sitemap.xml"
+  [headers.values]
+    Cache-Control = "public, max-age=86400"

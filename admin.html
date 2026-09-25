@@ -1,0 +1,996 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LinkDevs Admin Panel</title>
+<link rel="icon" href="/favicon.ico" sizes="any" />
+<link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+<meta name="theme-color" content="#000000" />
+<meta name="robots" content="noindex, nofollow" />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.js"></script>
+<style>
+/* ── Reset & Base (โทนสีเดิม) ── */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg: #0f172a;
+  --surface: #1e293b;
+  --border-mid: #334155;
+  --txt: #f8fafc;
+  --txt2: #94a3b8;
+  --txt3: #64748b;
+  --primary: #3b82f6;
+  --primary-dark: #2563eb;
+  --primary-light: rgba(59, 130, 246, 0.15);
+  --success: #10b981;
+  --success-light: rgba(16, 185, 129, 0.15);
+  --danger: #ef4444;
+  --danger-light: rgba(239, 68, 68, 0.15);
+  --r: 14px;
+  --r-sm: 10px;
+  --r-xs: 8px;
+}
+html,body{min-height:100%;font-family:'Inter',sans-serif;font-size:13px;background:var(--bg);color:var(--txt);-webkit-font-smoothing:antialiased;}
+
+/* ── Navbar ── */
+.navbar{
+  background:var(--surface);
+  border-bottom:1px solid var(--border-mid);
+  padding:0 20px;display:flex;align-items:center;height:56px;
+  position:sticky;top:0;z-index:50;
+}
+.nav-logo{font-size:15px;font-weight:800;margin-right:32px;letter-spacing:-.5px;color:var(--txt);}
+.nav-logo span{color:var(--primary);}
+.nav-tabs{display:flex;height:100%;gap:4px;align-items:center;}
+.nav-tab{
+  display:flex;align-items:center;gap:6px;padding:7px 14px;
+  font-size:12px;font-weight:600;color:var(--txt2);
+  background:none;border:none;border-radius:20px;cursor:pointer;
+  transition:all .15s;height:36px;
+}
+.nav-tab:hover{color:var(--txt);background:var(--bg);}
+.nav-tab.active{color:var(--primary);background:var(--primary-light);font-weight:700;}
+.nav-tab svg{width:15px;height:15px;}
+
+/* ── Layout & View System (App-like) ── */
+.page{display:none;max-width:600px;margin:0 auto;padding:24px 16px 80px;}
+.page.on{display:block;}
+.view{display:none; animation: appSlideIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;}
+.view.on{display:block;}
+@keyframes appSlideIn {
+  0% { opacity: 0; transform: translateX(10px); }
+  100% { opacity: 1; transform: translateX(0); }
+}
+
+/* ── App UI Elements ── */
+.section-title{font-size:22px;font-weight:800;letter-spacing:-.5px;margin-bottom:6px;color:var(--txt);}
+.section-sub{font-size:13px;color:var(--txt2);margin-bottom:24px;}
+
+.card{
+  background:var(--surface);border:1px solid var(--border-mid);
+  border-radius:var(--r);margin-bottom:16px;overflow:hidden;
+}
+.card-body{padding:20px;}
+
+.field{display:flex;flex-direction:column;gap:6px;margin-bottom:16px;}
+.field:last-child{margin-bottom:0;}
+.label{font-size:11px;font-weight:700;color:var(--txt2);letter-spacing:.3px;text-transform:uppercase;}
+.input,.select,.textarea{
+  width:100%;padding:12px 14px;border:1px solid var(--border-mid);
+  border-radius:var(--r-xs);font-size:14px;color:var(--txt);
+  font-family:inherit;background:var(--bg);outline:none;transition:all .15s;
+}
+.input:focus,.select:focus,.textarea:focus{border-color:var(--primary);background:var(--surface);}
+.input::placeholder,.textarea::placeholder{color:var(--txt3);}
+.textarea{resize:vertical;min-height:100px;line-height:1.5;}
+.select{
+  cursor:pointer;-webkit-appearance:none;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 14px center;padding-right:36px;
+}
+
+/* ── Wizard Progress Bar ── */
+.wizard-header{margin-bottom:24px;}
+.progress-track{
+  display:flex;align-items:center;justify-content:space-between;
+  position:relative;margin-bottom:12px;
+}
+.progress-track::before{
+  content:'';position:absolute;top:50%;left:0;right:0;
+  height:3px;background:var(--border-mid);transform:translateY(-50%);z-index:1;
+}
+.progress-fill{
+  position:absolute;top:50%;left:0;height:3px;background:var(--primary);
+  transform:translateY(-50%);z-index:2;transition:width 0.3s ease;
+}
+.step-dot{
+  width:24px;height:24px;border-radius:50%;background:var(--surface);
+  color:var(--txt2);font-size:11px;font-weight:700;display:flex;
+  align-items:center;justify-content:center;z-index:3;position:relative;
+  transition:all 0.3s ease;border:3px solid var(--bg);
+}
+.step-dot.active{background:var(--primary);color:#fff;box-shadow:0 0 0 3px var(--primary-light);}
+.step-dot.done{background:var(--primary);color:#fff;border-color:var(--primary);}
+.step-labels{display:flex;justify-content:space-between;font-size:11px;font-weight:600;color:var(--txt3);}
+.step-label{flex:1;text-align:center;}
+.step-label.active{color:var(--primary);}
+
+/* ── Buttons ── */
+.btn-row{display:flex;gap:10px;margin-top:24px;}
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:8px;
+  padding:12px 20px;font-size:14px;font-weight:700;border-radius:var(--r-sm);
+  border:none;cursor:pointer;font-family:inherit;white-space:nowrap;
+  transition:all .15s; flex:1;
+}
+.btn svg{width:16px;height:16px;pointer-events:none;}
+.btn:disabled{opacity:.5;cursor:not-allowed;}
+.btn:active:not(:disabled){transform:scale(.97);}
+.btn-primary{background:var(--primary);color:#fff;}
+.btn-primary:hover:not(:disabled){background:var(--primary-dark);}
+.btn-ghost{background:transparent;color:var(--txt2);border:1px solid var(--border-mid);}
+.btn-ghost:hover:not(:disabled){background:var(--surface);color:var(--txt);border-color:var(--txt3);}
+.btn-danger{color:var(--danger);background:var(--danger-light);border:1px solid rgba(239, 68, 68, 0.3);}
+.btn-icon{width:36px;height:36px;padding:0;flex:none;border-radius:var(--r-xs);}
+.btn-sm{padding:8px 14px;font-size:12px;border-radius:var(--r-xs);}
+
+/* ── Mode Toggle ── */
+.mode-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.mode-btn{
+  padding:16px 12px;border:2px dashed var(--border-mid);border-radius:var(--r-sm);
+  background:var(--bg);font-size:14px;font-weight:600;color:var(--txt2);
+  cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:8px;
+  transition:all .2s;
+}
+.mode-btn:hover{border-color:var(--primary);color:var(--primary);}
+.mode-btn.on{background:var(--primary-light);border-color:var(--primary);color:var(--primary);border-style:solid;}
+.mode-btn svg{width:20px;height:20px;}
+
+/* ── Step Cards ── */
+.step-card{border:1px solid var(--border-mid);border-radius:var(--r-sm);margin-bottom:12px;background:var(--bg);}
+.step-head{
+  background:var(--surface);padding:12px 16px;
+  display:flex;align-items:center;justify-content:space-between;
+  border-bottom:1px solid var(--border-mid);border-radius:var(--r-sm) var(--r-sm) 0 0;
+}
+.step-num{font-size:12px;font-weight:700;color:var(--primary);}
+.step-rm{
+  width:28px;height:28px;border:none;background:transparent;
+  color:var(--txt3);cursor:pointer;display:flex;align-items:center;justify-content:center;
+  border-radius:6px;transition:all .15s;
+}
+.step-rm:hover{color:var(--danger);background:var(--danger-light);}
+.step-body{padding:16px;}
+.step-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+
+/* ── Toggle switch ── */
+.toggle-row{display:flex;align-items:center;justify-content:space-between;}
+.toggle-info .tl{font-size:14px;font-weight:700;color:var(--txt);}
+.toggle-info .ts{font-size:12px;color:var(--txt2);margin-top:2px;}
+.sw{position:relative;width:44px;height:24px;flex-shrink:0;cursor:pointer;}
+.sw input{opacity:0;width:0;height:0;position:absolute;}
+.sw-track{position:absolute;inset:0;border-radius:24px;background:var(--border-mid);transition:background .2s;}
+.sw input:checked+.sw-track{background:var(--primary);}
+.sw-track::after{
+  content:'';position:absolute;width:18px;height:18px;border-radius:50%;
+  background:#fff;top:3px;left:3px;transition:left .2s;
+  border:1px solid rgba(0,0,0,0.1);
+}
+.sw input:checked+.sw-track::after{left:23px;}
+
+.media-preview{border-radius:var(--r-sm);overflow:hidden;aspect-ratio:16/9;background:var(--border-mid);margin-top:16px;display:none;}
+.media-preview img,.media-preview iframe{width:100%;height:100%;object-fit:cover;border:none;display:block;}
+
+/* ── Results / Links ── */
+.success-icon{
+  width:64px;height:64px;background:var(--success-light);border-radius:50%;
+  display:flex;align-items:center;justify-content:center;color:var(--success);
+  border:3px solid rgba(16,185,129,0.3);margin:0 auto 16px;
+}
+.success-icon svg{width:32px;height:32px;}
+.link-row{
+  display:flex;align-items:center;gap:12px;background:var(--bg);
+  border:1px solid var(--border-mid);border-radius:var(--r-sm);padding:12px 16px;
+  cursor:pointer;transition:all .15s;margin-bottom:10px;
+}
+.link-row:hover{border-color:var(--primary);background:var(--primary-light);}
+.link-row-icon{font-size:18px;flex-shrink:0;}
+.link-row-body{flex:1;min-width:0;}
+.link-row-label{font-size:11px;font-weight:700;color:var(--txt2);text-transform:uppercase;letter-spacing:.3px;}
+.link-row-url{font-size:13px;font-family:monospace;color:var(--txt);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px;}
+.link-row-copy{font-size:12px;font-weight:700;color:var(--primary);background:none;border:none;cursor:pointer;flex-shrink:0;}
+
+/* ── Payloads List ── */
+.search-box{position:relative;margin-bottom:16px;}
+.search-box svg{position:absolute;left:14px;top:50%;transform:translateY(-50%);width:16px;height:16px;color:var(--txt3);}
+.search-box input{
+  width:100%;padding:12px 16px 12px 40px;border:1px solid var(--border-mid);
+  border-radius:var(--r-sm);font-size:14px;background:var(--bg);outline:none;
+  font-family:inherit;color:var(--txt);transition:border-color .15s;
+}
+.search-box input:focus{border-color:var(--primary);}
+.payload-row{padding:16px;border-bottom:1px solid var(--border-mid);display:flex;flex-direction:column;gap:12px;background:var(--surface);}
+.payload-row:first-child{border-top-left-radius:var(--r);border-top-right-radius:var(--r);}
+.payload-row:last-child{border-bottom:none;border-bottom-left-radius:var(--r);border-bottom-right-radius:var(--r);}
+.payload-top{display:flex;align-items:flex-start;gap:12px;}
+.payload-icon{
+  width:40px;height:40px;border-radius:var(--r-sm);background:var(--primary-light);
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;color:var(--primary);
+}
+.payload-info{flex:1;min-width:0;}
+.payload-key{font-size:15px;font-weight:700;font-family:monospace;color:var(--txt);}
+.tag{
+  font-size:11px;padding:3px 10px;border-radius:20px;
+  background:var(--bg);border:1px solid var(--border-mid);color:var(--txt2);font-weight:600;display:inline-block;margin-top:6px;
+}
+
+/* ── Inline PIN Lock (No Overlay) ── */
+.pin-container{
+  max-width:320px;margin:40px auto;text-align:center;
+}
+.pin-icon-wrap{
+  width:64px;height:64px;border-radius:50%;background:var(--primary-light);
+  display:flex;align-items:center;justify-content:center;border:3px solid rgba(59,130,246,0.3);
+  margin:0 auto 16px;color:var(--primary);
+}
+.pin-dots{display:flex;justify-content:center;gap:16px;margin:24px 0 32px;}
+.pin-dot{
+  width:16px;height:16px;border-radius:50%;background:var(--bg);
+  border:2px solid var(--border-mid);transition:all .15s;
+}
+.pin-dot.filled{background:var(--primary);border-color:var(--primary);}
+.pin-dot.error{background:var(--danger);border-color:var(--danger);}
+.pin-keypad{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;}
+.pin-key{
+  height:60px;border:1px solid var(--border-mid);border-radius:var(--r-sm);
+  background:var(--surface);font-size:20px;font-weight:700;color:var(--txt);
+  cursor:pointer;transition:all .12s;font-family:inherit;
+}
+.pin-key:hover{background:var(--primary-light);border-color:var(--primary);color:var(--primary);}
+.pin-key:active{transform:scale(.95);}
+.pin-key.del{font-size:16px;color:var(--txt2);}
+.pin-key.del:hover{background:var(--danger-light);border-color:rgba(239,68,68,0.4);color:var(--danger);}
+.pin-shake{animation:pinShake .35s ease;}
+@keyframes pinShake{
+  0%,100%{transform:translateX(0);} 20%{transform:translateX(-8px);}
+  40%{transform:translateX(8px);} 60%{transform:translateX(-6px);} 80%{transform:translateX(6px);}
+}
+
+/* ── Banners & Toast ── */
+.banner-msg{
+  background:var(--surface);border:1px solid var(--border-mid);border-radius:var(--r-sm);
+  padding:12px 14px;display:none;align-items:center;justify-content:space-between;
+  gap:12px;margin-bottom:16px;font-size:13px;font-weight:600;color:var(--txt);
+}
+#toast{
+  position:fixed;top:20px;left:50%;transform:translate(-50%,-100%);
+  background:var(--txt);color:var(--bg);padding:12px 24px;
+  border-radius:50px;font-size:13px;font-weight:700;
+  opacity:0;transition:all .25s;pointer-events:none;z-index:999;
+  min-width:180px;text-align:center;box-shadow:0 4px 12px rgba(0,0,0,0.3);
+}
+#toast.on{opacity:1;transform:translate(-50%,0);}
+#toast.error{background:var(--danger);color:#fff;}
+#toast.ok{background:var(--success);color:#fff;}
+.empty{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:48px;color:var(--txt3);}
+@keyframes spin{to{transform:rotate(360deg)}}
+.spin{animation:spin .6s linear infinite}
+
+/* Mobile */
+@media(max-width:640px){
+  .step-grid{grid-template-columns:1fr;}
+  .navbar{padding:0 14px;}
+  .nav-tabs{position:fixed;bottom:0;left:0;right:0;z-index:80;height:60px;background:var(--surface);border-top:1px solid var(--border-mid);gap:0;}
+  .nav-tab{flex:1;flex-direction:column;justify-content:center;gap:3px;font-size:10px;border-radius:0;height:100%;padding:0;}
+  .nav-tab.active{background:var(--primary-light);}
+}
+</style>
+</head>
+<body>
+
+<!-- Navbar -->
+<nav class="navbar">
+  <div class="nav-logo">Link<span>Devs</span></div>
+  <div class="nav-tabs">
+    <button class="nav-tab active" id="tab-create" onclick="switchMainTab('create')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      Create
+    </button>
+    <button class="nav-tab" id="tab-manage" onclick="switchMainTab('manage')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+      Payloads
+    </button>
+  </div>
+</nav>
+
+<!-- ══════════════════════════════════════════ -->
+<!-- Page: Create (Wizard System)              -->
+<!-- ══════════════════════════════════════════ -->
+<div class="page on" id="page-create">
+  
+  <!-- Wizard Header (Hidden on success) -->
+  <div class="wizard-header" id="wizard-header">
+    <div class="progress-track">
+      <div class="progress-fill" id="progress-bar" style="width: 0%;"></div>
+      <div class="step-dot active" id="dot-1">1</div>
+      <div class="step-dot" id="dot-2">2</div>
+      <div class="step-dot" id="dot-3">3</div>
+    </div>
+    <div class="step-labels">
+      <div class="step-label active" id="lbl-1">Target</div>
+      <div class="step-label" id="lbl-2">Tasks</div>
+      <div class="step-label" id="lbl-3">Deploy</div>
+    </div>
+  </div>
+
+  <!-- Draft / Edit Alerts -->
+  <div class="banner-msg" id="draft-bar">
+    <div style="display:flex;align-items:center;gap:8px;">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/></svg>
+      Draft found
+    </div>
+    <div style="display:flex;gap:8px;">
+      <button class="btn btn-ghost btn-sm" onclick="restoreDraft()">Restore</button>
+      <button class="btn btn-ghost btn-sm" onclick="discardDraft()">Discard</button>
+    </div>
+  </div>
+  <div class="banner-msg" id="edit-banner" style="background:var(--primary-light);border-color:rgba(59,130,246,0.3);">
+    <div style="display:flex;align-items:center;gap:8px;">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16" color="var(--primary)"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+      <span style="color:var(--primary);">Editing ID: <b id="edit-key-label" style="font-family:monospace;color:var(--txt);"></b></span>
+    </div>
+    <button class="btn btn-ghost btn-sm" onclick="cancelEdit()">Cancel</button>
+  </div>
+
+  <!-- Step 1: Target -->
+  <div class="view on" id="view-create-1">
+    <div class="section-title">Destination</div>
+    <div class="section-sub">Where should the user go after unlocking?</div>
+    <div class="card">
+      <div class="card-body">
+        <div class="field">
+          <div class="label">Output Mode</div>
+          <div class="mode-row">
+            <button class="mode-btn on" id="mb-url" onclick="setMode('url')">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+              URL Redirect
+            </button>
+            <button class="mode-btn" id="mb-text" onclick="setMode('text')">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+              Secret Text
+            </button>
+          </div>
+          <input type="hidden" id="ipt-mode" value="url">
+        </div>
+        <div class="field" style="margin-top:24px;">
+          <div class="label" id="dest-lbl">Destination URL</div>
+          <input type="url" class="input" id="ipt-dest-url" placeholder="https://..." oninput="scheduleDraft()">
+          <textarea class="textarea" id="ipt-dest-text" placeholder="Enter secret content here..." oninput="autoResizeDest();scheduleDraft()" style="display:none;"></textarea>
+        </div>
+      </div>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-primary" onclick="goToStep(2)">Continue to Tasks</button>
+    </div>
+  </div>
+
+  <!-- Step 2: Tasks -->
+  <div class="view" id="view-create-2">
+    <div class="section-title">Unlock Tasks</div>
+    <div class="section-sub">Steps users must complete to unlock content.</div>
+    <div id="step-list"></div>
+    <button class="btn btn-ghost" style="width:100%;margin-bottom:16px;border-style:dashed;" onclick="addStep()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      Add Another Task
+    </button>
+    <div class="btn-row">
+      <button class="btn btn-ghost" onclick="goToStep(1)">Back</button>
+      <button class="btn btn-primary" onclick="goToStep(3)">Continue</button>
+    </div>
+  </div>
+
+  <!-- Step 3: Media & Deploy -->
+  <div class="view" id="view-create-3">
+    <div class="section-title">Media & Publish</div>
+    <div class="section-sub">Attach media for Telegram and finalize.</div>
+    <div class="card">
+      <div class="card-body">
+        <div class="toggle-row">
+          <div class="toggle-info">
+            <div class="tl">Enable Media Banner</div>
+            <div class="ts">Show image/video in Telegram post</div>
+          </div>
+          <label class="sw"><input type="checkbox" id="media-on" onchange="toggleMedia()"><span class="sw-track"></span></label>
+        </div>
+        <div id="media-cfg" style="display:none;margin-top:20px;border-top:1px solid var(--border-mid);padding-top:20px;">
+          <div class="field">
+            <div class="label">Format</div>
+            <select class="select" id="media-type" onchange="previewMedia();scheduleDraft()">
+              <option value="image">Image URL</option>
+              <option value="youtube">YouTube Video</option>
+            </select>
+          </div>
+          <div class="field">
+            <div class="label">Media URL</div>
+            <input class="input" id="media-url" placeholder="Paste URL..." oninput="previewMedia();scheduleDraft()">
+          </div>
+          <div class="media-preview" id="media-preview"></div>
+        </div>
+      </div>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-ghost" onclick="goToStep(2)">Back</button>
+      <button class="btn btn-primary" id="btn-save" onclick="deployPayload()">
+        <span id="btn-save-txt">Deploy Payload</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Step 4: Success Result (Replaces Modal) -->
+  <div class="view" id="view-create-success">
+    <div style="text-align:center;padding:24px 0;">
+      <div class="success-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+      </div>
+      <div class="section-title" id="result-title">Deployed Successfully!</div>
+      <div class="section-sub">Your payload is live and posted to channel.</div>
+    </div>
+    <div id="result-links" style="margin-bottom:32px;"></div>
+    <div class="btn-row">
+      <button class="btn btn-ghost" onclick="resetAndStartOver()">Create Another</button>
+      <button class="btn btn-primary" onclick="switchMainTab('manage')">View Payloads</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════ -->
+<!-- Page: Manage (Inline PIN & List)          -->
+<!-- ══════════════════════════════════════════ -->
+<div class="page" id="page-manage">
+  
+  <!-- Inline PIN Screen -->
+  <div class="view" id="view-manage-pin">
+    <div class="pin-container">
+      <div class="pin-icon-wrap">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="32" height="32">
+          <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+        </svg>
+      </div>
+      <div class="section-title">Protected Area</div>
+      <div class="section-sub">Enter your 4-digit PIN to access payloads.</div>
+      
+      <div class="pin-dots" id="pin-dots">
+        <div class="pin-dot" id="pd0"></div>
+        <div class="pin-dot" id="pd1"></div>
+        <div class="pin-dot" id="pd2"></div>
+        <div class="pin-dot" id="pd3"></div>
+      </div>
+      
+      <div class="pin-keypad">
+        <button class="pin-key" onclick="pinKey('1')">1</button>
+        <button class="pin-key" onclick="pinKey('2')">2</button>
+        <button class="pin-key" onclick="pinKey('3')">3</button>
+        <button class="pin-key" onclick="pinKey('4')">4</button>
+        <button class="pin-key" onclick="pinKey('5')">5</button>
+        <button class="pin-key" onclick="pinKey('6')">6</button>
+        <button class="pin-key" onclick="pinKey('7')">7</button>
+        <button class="pin-key" onclick="pinKey('8')">8</button>
+        <button class="pin-key" onclick="pinKey('9')">9</button>
+        <div></div>
+        <button class="pin-key" onclick="pinKey('0')">0</button>
+        <button class="pin-key del" onclick="pinDel()">⌫</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Payload List Screen -->
+  <div class="view" id="view-manage-list">
+    <div class="section-title">Manage Payloads</div>
+    <div class="section-sub">View, edit, and copy deployed links.</div>
+    <div class="search-box">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input placeholder="Search ID or URL..." oninput="filterList(this.value)" id="s-input">
+    </div>
+    <div style="border:1px solid var(--border-mid);border-radius:var(--r);background:var(--surface);">
+      <div id="p-list">
+        <div class="empty"><svg class="spin" style="width:24px;height:24px;opacity:.3;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div id="toast"></div>
+
+<!-- ══════════════════════════════════════════════════════════════════════ -->
+<!-- SCRIPT                                                                -->
+<!-- ══════════════════════════════════════════════════════════════════════ -->
+<script>
+// ── Config ────────────────────────────────────────────────────────────────
+const FB_URL    = 'https://project-1996400454241260071-default-rtdb.asia-southeast1.firebasedatabase.app/';
+const BOT       = 'linkdevs_bot';
+const APP_NAME  = 'data';
+const TG_TOKEN  = '8734647340:AAECL0zP0wGbnSVym8hYv_nUkKvaAW_b6qs';
+const TG_CHAT   = '-1003764188944';
+const WEB_BASE  = 'https://linkdevs.netlify.app';
+const DRAFT_KEY = 'ld_draft_v4';
+const SECRET_KEY= '566494444'; 
+
+if (!firebase.apps.length) firebase.initializeApp({ databaseURL: FB_URL });
+const db = firebase.database();
+
+const tgLink      = k => `https://t.me/${BOT}/${APP_NAME}?startapp=${k}`;
+const channelLink = msgId => `https://t.me/linkdevs_ch/${msgId}`;
+const randId      = (n=6) => { let r='',c='ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789'; for(let i=0;i<n;i++) r+=c[Math.floor(Math.random()*c.length)]; return r; };
+
+// ── State ─────────────────────────────────────────────────────────────────
+let editKey=null, mode='url', steps=[], mediaOn=false;
+let payloads=[], listListener=null, draftTimer=null;
+let wizardStep=1;
+
+const PLATS = [
+  {v:'youtube',l:'YouTube'},{v:'tiktok',l:'TikTok'},{v:'instagram',l:'Instagram'},
+  {v:'facebook',l:'Facebook'},{v:'twitter',l:'Twitter / X'},{v:'discord',l:'Discord'},
+  {v:'telegram',l:'Telegram'},{v:'twitch',l:'Twitch'},{v:'whatsapp',l:'WhatsApp'},
+  {v:'line',l:'LINE'},{v:'link',l:'General Link'}
+];
+
+// ── Helpers ───────────────────────────────────────────────────────────────
+function toast(msg, type='') {
+  const el=document.getElementById('toast');
+  el.textContent=msg;
+  el.className='on'+(type?' '+type:'');
+  clearTimeout(el._t);
+  el._t=setTimeout(()=>el.className='',2800);
+}
+function escHtml(s){ return (s||'').replace(/&/g,'&amp;').replace(/</g,'&gt;').replace(/"/g,'&quot;'); }
+
+// ── Tab & View Switching (App Flow) ───────────────────────────────────────
+function switchMainTab(tabName) {
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('on'));
+  document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('page-'+tabName).classList.add('on');
+  document.getElementById('tab-'+tabName).classList.add('active');
+
+  if (tabName === 'manage') {
+    if (!isPinUnlocked()) {
+      showManageView('pin');
+    } else {
+      showManageView('list');
+      loadList();
+    }
+  } else {
+    if(wizardStep < 4) document.getElementById('wizard-header').style.display='block';
+  }
+}
+
+function showManageView(view) {
+  document.getElementById('view-manage-pin').classList.remove('on');
+  document.getElementById('view-manage-list').classList.remove('on');
+  document.getElementById('view-manage-'+view).classList.add('on');
+  if(view === 'pin') { pinBuffer=''; updatePinDots(false); }
+}
+
+// ── Wizard System ─────────────────────────────────────────────────────────
+function goToStep(n) {
+  if(n === 2 && wizardStep === 1) {
+    const dest = getDestValue().trim();
+    if(!dest) return toast('Please enter destination', 'error');
+  }
+  if(n === 3 && wizardStep === 2) {
+    const valid = steps.filter(s=>s.name.trim()&&s.url.trim());
+    if(!valid.length) return toast('Add at least 1 valid task', 'error');
+  }
+
+  document.getElementById('view-create-1').classList.remove('on');
+  document.getElementById('view-create-2').classList.remove('on');
+  document.getElementById('view-create-3').classList.remove('on');
+  document.getElementById('view-create-success').classList.remove('on');
+  
+  if (n < 4) {
+    document.getElementById('wizard-header').style.display = 'block';
+    document.getElementById('view-create-'+n).classList.add('on');
+    wizardStep = n;
+    
+    const progress = n===1 ? 0 : n===2 ? 50 : 100;
+    document.getElementById('progress-bar').style.width = progress + '%';
+    
+    for(let i=1; i<=3; i++){
+      const d=document.getElementById('dot-'+i);
+      const l=document.getElementById('lbl-'+i);
+      d.className = 'step-dot' + (i===n ? ' active' : i<n ? ' done' : '');
+      l.className = 'step-label' + (i===n ? ' active' : '');
+      if(i<n) d.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" width="12" height="12"><polyline points="20 6 9 17 4 12"/></svg>';
+      else d.innerHTML = i;
+    }
+  } else {
+    document.getElementById('wizard-header').style.display = 'none';
+    document.getElementById('view-create-success').classList.add('on');
+    wizardStep = 4;
+  }
+}
+
+function resetAndStartOver() {
+  resetForm();
+  goToStep(1);
+}
+
+// ── PIN Lock (Inline) ─────────────────────────────────────────────────────
+const PIN_CODE       = '1412';
+const PIN_SESSION_KEY= 'ld_pin_ok';
+let pinBuffer = '';
+let pinUnlocked = false;
+
+function isPinUnlocked() { return pinUnlocked || sessionStorage.getItem(PIN_SESSION_KEY) === '1'; }
+
+function updatePinDots(error) {
+  for (let i = 0; i < 4; i++) {
+    const dot = document.getElementById('pd' + i);
+    dot.className = 'pin-dot' + (error ? ' error' : (i < pinBuffer.length ? ' filled' : ''));
+  }
+}
+
+function pinKey(digit) {
+  if (pinBuffer.length >= 4) return;
+  pinBuffer += digit;
+  updatePinDots(false);
+  if (pinBuffer.length === 4) {
+    setTimeout(() => {
+      if (pinBuffer === PIN_CODE) {
+        pinUnlocked = true;
+        sessionStorage.setItem(PIN_SESSION_KEY, '1');
+        showManageView('list');
+        loadList();
+      } else {
+        updatePinDots(true);
+        const box = document.querySelector('.pin-container');
+        box.classList.remove('pin-shake');
+        void box.offsetWidth;
+        box.classList.add('pin-shake');
+        toast('Wrong PIN', 'error');
+        setTimeout(() => { pinBuffer=''; updatePinDots(false); }, 700);
+      }
+    }, 100);
+  }
+}
+function pinDel() { if(pinBuffer.length){ pinBuffer=pinBuffer.slice(0,-1); updatePinDots(false); } }
+
+// ── Mode ──────────────────────────────────────────────────────────────────
+function getDestEl() { return mode === 'url' ? document.getElementById('ipt-dest-url') : document.getElementById('ipt-dest-text'); }
+function getDestValue() { return getDestEl().value; }
+function setDestValue(v) {
+  document.getElementById('ipt-dest-url').value  = (mode === 'url')  ? v : '';
+  document.getElementById('ipt-dest-text').value = (mode === 'text') ? v : '';
+  if (mode === 'text') autoResizeDest();
+}
+function autoResizeDest() {
+  const el = document.getElementById('ipt-dest-text');
+  el.style.height = 'auto'; el.style.height = el.scrollHeight + 'px';
+}
+function setMode(m) {
+  const oldVal = getDestValue();
+  mode = m;
+  document.getElementById('ipt-mode').value = m;
+  document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('on'));
+  document.getElementById('mb-' + m).classList.add('on');
+  document.getElementById('dest-lbl').textContent = m === 'url' ? 'Destination URL' : 'Secret Text Content';
+  document.getElementById('ipt-dest-url').style.display  = m === 'url'  ? 'block' : 'none';
+  document.getElementById('ipt-dest-text').style.display = m === 'text' ? 'block' : 'none';
+  setDestValue(oldVal);
+  scheduleDraft();
+}
+
+// ── Steps ─────────────────────────────────────────────────────────────────
+function renderSteps() {
+  const el=document.getElementById('step-list');
+  if (!steps.length) { el.innerHTML=''; return; }
+  el.innerHTML=steps.map((s,i)=>`
+    <div class="step-card">
+      <div class="step-head">
+        <div class="step-num">Task ${i+1}</div>
+        <button class="step-rm" onclick="rmStep(${i})" title="Remove"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+      </div>
+      <div class="step-body">
+        <div class="field">
+          <div class="label">Platform</div>
+          <select class="select" onchange="steps[${i}].icon=this.value;scheduleDraft()">
+            ${PLATS.map(p=>`<option value="${p.v}"${s.icon===p.v?' selected':''}>${p.l}</option>`).join('')}
+          </select>
+        </div>
+        <div class="step-grid">
+          <div class="field">
+            <div class="label">Task Title</div>
+            <input class="input" value="${escHtml(s.name)}" placeholder="Subscribe..." oninput="steps[${i}].name=this.value;scheduleDraft()">
+          </div>
+          <div class="field">
+            <div class="label">Timer</div>
+            <select class="select" onchange="steps[${i}].timer=parseInt(this.value);scheduleDraft()">
+              ${[0,5,10,15,30,60].map(t=>`<option value="${t}"${s.timer===t?' selected':''}>${t===0?'No timer':t<60?t+' sec':'1 min'}</option>`).join('')}
+            </select>
+          </div>
+        </div>
+        <div class="field" style="margin-top:4px;">
+          <div class="label">Action URL</div>
+          <input class="input" type="url" value="${escHtml(s.url)}" placeholder="https://..." oninput="steps[${i}].url=this.value;scheduleDraft()">
+        </div>
+      </div>
+    </div>
+  `).join('');
+}
+function addStep() { steps.push({name:'',icon:'youtube',url:'',timer:10}); renderSteps(); scheduleDraft(); }
+function rmStep(i) { steps.splice(i,1); renderSteps(); scheduleDraft(); }
+
+// ── Media ─────────────────────────────────────────────────────────────────
+function toggleMedia() {
+  mediaOn=document.getElementById('media-on').checked;
+  document.getElementById('media-cfg').style.display=mediaOn?'block':'none';
+  scheduleDraft();
+}
+function ytId(url) {
+  const m=url.match(/(?:youtu\.be\/|youtube\.com\/(?:.*v=|.*\/|.*embed\/|shorts\/))([^&?\/]*)/);
+  return m?m[1]:null;
+}
+function previewMedia() {
+  const type=document.getElementById('media-type').value;
+  const url=document.getElementById('media-url').value.trim();
+  const p=document.getElementById('media-preview');
+  if(!url){p.style.display='none';p.innerHTML='';return;}
+  p.style.display='block';
+  if(type==='image'){ p.innerHTML=`<img src="${url}" onerror="this.parentElement.style.display='none'">`; }
+  else {
+    const id=ytId(url);
+    p.innerHTML=id ? `<iframe src="https://www.youtube.com/embed/${id}" allowfullscreen></iframe>` : `<div style="height:100%;display:flex;align-items:center;justify-content:center;font-size:12px;color:var(--txt3);">Invalid URL</div>`;
+  }
+}
+
+// ── Draft ─────────────────────────────────────────────────────────────────
+function scheduleDraft() { clearTimeout(draftTimer); draftTimer=setTimeout(saveDraft,1000); }
+function saveDraft() {
+  if(editKey) return;
+  const d={ mode, dest:getDestValue(), steps, mediaOn, mediaType:document.getElementById('media-type').value, mediaUrl:document.getElementById('media-url').value };
+  try{localStorage.setItem(DRAFT_KEY,JSON.stringify(d));}catch(e){}
+}
+function checkDraft() { try{ if(localStorage.getItem(DRAFT_KEY)) document.getElementById('draft-bar').style.display='flex'; }catch(e){} }
+function restoreDraft() {
+  try {
+    const d=JSON.parse(localStorage.getItem(DRAFT_KEY));
+    setMode(d.mode||'url'); setDestValue(d.dest||''); steps=d.steps||[];
+    if(!steps.length) addStep(); else renderSteps();
+    mediaOn=!!d.mediaOn; document.getElementById('media-on').checked=mediaOn;
+    document.getElementById('media-type').value=d.mediaType||'image';
+    document.getElementById('media-url').value=d.mediaUrl||'';
+    toggleMedia(); previewMedia();
+    document.getElementById('draft-bar').style.display='none'; toast('Draft restored');
+  } catch(e){}
+}
+function discardDraft() { localStorage.removeItem(DRAFT_KEY); document.getElementById('draft-bar').style.display='none'; toast('Draft discarded'); }
+
+// ── Build & validate ──────────────────────────────────────────────────────
+function buildPayload() {
+  const dest=(getDestValue()||'').trim();
+  if(!dest){ toast('Missing destination URL','error'); return null; }
+  const valid=steps.filter(s=>s.name.trim()&&s.url.trim());
+  if(!valid.length){ toast('At least 1 valid task required','error'); return null; }
+  const mUrl=(document.getElementById('media-url').value||'').trim();
+  const mType=document.getElementById('media-type').value;
+
+  const media = mediaOn && mUrl ? { enabled:true, type:mType, url:mUrl, media:[{type:mType,url:mUrl}] } : { enabled:false };
+  const firebasePayload = {
+    mode, target: dest, tasks: valid, slideshow: media,
+    image: (mediaOn && mType==='image' && mUrl) ? mUrl : null,
+    video: (mediaOn && mType==='youtube' && mUrl) ? mUrl : null,
+  };
+  return { firebasePayload, dest, valid, mType, mUrl };
+}
+
+// ── Deploy ────────────────────────────────────────────────────────────────
+async function deployPayload() {
+  const built=buildPayload(); if(!built) return;
+  const { firebasePayload, dest, valid, mType, mUrl } = built;
+
+  const btn=document.getElementById('btn-save');
+  const orig=btn.innerHTML;
+  btn.innerHTML='<svg class="spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="16" height="16"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg> Publishing...';
+  btn.disabled=true;
+
+  try {
+    const key = editKey || randId(6);
+    const isEdit = !!editKey;
+    let oldMsgId = null;
+
+    if(isEdit){
+      const snap=await db.ref('locked_contents/'+key+'/_tg_msg_id').once('value');
+      if(snap.exists()) oldMsgId=snap.val();
+    }
+
+    await db.ref('locked_contents/'+key).set(firebasePayload);
+    if(oldMsgId){
+      await fetch('https://api.telegram.org/bot'+TG_TOKEN+'/deleteMessage',{ method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({chat_id:TG_CHAT,message_id:oldMsgId}) }).catch(()=>{});
+    }
+
+    const webLink    = `${WEB_BASE}/${key}`;
+    const tgMiniLink = tgLink(key);
+    const newMsgId = await sendChannelPost(key, firebasePayload, webLink, tgMiniLink);
+    
+    if(newMsgId) await db.ref('locked_contents/'+key+'/_tg_msg_id').set(newMsgId);
+    await db.ref('locked_contents/'+key+'/_enc_link').set(webLink);
+
+    document.getElementById('result-title').textContent = isEdit ? 'Updated Successfully!' : 'Deployed Successfully!';
+    const chLink = newMsgId ? channelLink(newMsgId) : '';
+    let html = linkRow('Website Link','🌐', webLink);
+    if(chLink) html += linkRow('Telegram Post','📢',chLink);
+    document.getElementById('result-links').innerHTML = html;
+    
+    goToStep(4);
+
+    if(isEdit){
+      editKey=null;
+      document.getElementById('edit-banner').style.display='none';
+      document.getElementById('btn-save-txt').textContent='Deploy Payload';
+    }
+    localStorage.removeItem(DRAFT_KEY);
+
+  } catch(e){
+    toast('Error: '+e.message,'error');
+  } finally {
+    btn.innerHTML=orig; btn.disabled=false;
+  }
+}
+
+// ── Telegram post ─────────────────────────────────────────────────────────
+async function sendChannelPost(key, payload, webLink, tgMiniLink){
+  const textMsg = '🔒 <b>Exclusive Content</b>\nSelect one of the options below.\n\n🔗 <a href="' + webLink + '">Unlock via Website</a>';
+  const markup = { inline_keyboard: [[{ text: '🔗 Unlock via Website',  url: webLink }]] };
+  let endpoint = 'sendMessage';
+  let body = { chat_id: TG_CHAT, reply_markup: markup, parse_mode: 'HTML' };
+
+  if (payload.slideshow && payload.slideshow.enabled) {
+    const media = payload.slideshow.media[0];
+    if (media.type === 'image') {
+      endpoint = 'sendPhoto'; body.photo = media.url; body.caption = textMsg; body.parse_mode = 'HTML';
+    } else if (media.type === 'youtube') {
+      body.text = '<a href="' + media.url + '"> </a>' + textMsg;
+      body.link_preview_options = { is_disabled: false, prefer_large_media: true, show_above_text: true };
+    }
+  } else {
+    body.text = textMsg; body.link_preview_options = { is_disabled: true };
+  }
+
+  const r=await fetch('https://api.telegram.org/bot'+TG_TOKEN+'/'+endpoint,{ method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body) });
+  const d=await r.json();
+  if(!d.ok) throw new Error(d.description||'Telegram API error');
+  return d.result?.message_id||null;
+}
+
+// ── List & filter ─────────────────────────────────────────────────────────
+function loadList(){
+  if(listListener) return;
+  const el=document.getElementById('p-list');
+  el.innerHTML='<div class="empty"><svg class="spin" style="width:24px;height:24px;opacity:.3;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg></div>';
+  listListener=db.ref('locked_contents').on('value',snap=>{
+    payloads=[];
+    if(snap.exists()){
+      const data=snap.val();
+      if(Array.isArray(data)) data.forEach((v,i)=>{if(v)payloads.push({key:String(i),val:v});});
+      else Object.keys(data).forEach(k=>payloads.push({key:k,val:data[k]}));
+      payloads.reverse();
+    }
+    filterList(document.getElementById('s-input').value);
+  });
+}
+
+function filterList(q){
+  const items=q ? payloads.filter(p=>p.key.toLowerCase().includes(q.toLowerCase())||(p.val.target||'').toLowerCase().includes(q.toLowerCase())) : payloads;
+  const el=document.getElementById('p-list');
+  if(!items.length){ el.innerHTML='<div class="empty" style="font-size:13px;color:var(--txt3);">No payloads found</div>'; return; }
+
+  el.innerHTML=items.map(({key,val:d})=>{
+    const hasCh=!!d._tg_msg_id;
+    const encLink=d._enc_link||(WEB_BASE+'/'+key);
+    const modeLabel=d.mode||'url';
+    const taskCount=(d.tasks?d.tasks.length:0);
+    return `
+    <div class="payload-row">
+      <div class="payload-top">
+        <div class="payload-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div>
+        <div class="payload-info">
+          <div class="payload-key">${escHtml(key)}</div>
+          <div><span class="tag" style="color:var(--primary);background:var(--primary-light);border-color:rgba(59,130,246,0.3);">${modeLabel}</span> <span class="tag">${taskCount} task${taskCount!==1?'s':''}</span></div>
+        </div>
+        <div style="display:flex;gap:6px;">
+          <button class="btn btn-ghost btn-icon" onclick="editPayload('${key}')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+          <button class="btn btn-danger btn-icon" onclick="delPayload('${key}')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg></button>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:6px;margin-top:4px;">
+        ${linkRow('Website Link','🌐',encLink)}
+        ${hasCh ? linkRow('Telegram Post','📢',channelLink(d._tg_msg_id)) : ''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function linkRow(label, icon, url){
+  const safe=url.replace(/'/g,"\\'");
+  return `
+    <div class="link-row" onclick="copyRow(this,'${safe}')">
+      <div class="link-row-icon">${icon}</div>
+      <div class="link-row-body">
+        <div class="link-row-label">${label}</div>
+        <div class="link-row-url">${url}</div>
+      </div>
+      <button class="link-row-copy" onclick="event.stopPropagation();copyRow(this.closest('.link-row'),'${safe}')">Copy</button>
+    </div>`;
+}
+function copyRow(rowEl, txt){ navigator.clipboard.writeText(txt).then(()=>toast('Copied!','ok')).catch(()=>toast('Copy failed','error')); }
+
+// ── Edit payload ──────────────────────────────────────────────────────────
+function editPayload(key){
+  db.ref('locked_contents/'+key).once('value').then(snap=>{
+    if(!snap.exists()){ toast('Not found','error'); return; }
+    const d=snap.val();
+    editKey=key;
+    setMode(d.mode==='text'?'text':'url');
+    setDestValue(d.target||d.content||'');
+    steps=d.tasks||[];
+
+    let mType='image', mUrl='', mOn=false;
+    if(d.image){ mOn=true; mType='image'; mUrl=d.image; }
+    else if(d.video){ mOn=true; mType='youtube'; mUrl=d.video; }
+    else if(d.slideshow && d.slideshow.enabled){
+      const src=(d.slideshow.media&&d.slideshow.media[0])||d.slideshow;
+      mOn=true; mType=src.type||'image'; mUrl=src.url||'';
+    }
+    mediaOn=mOn; document.getElementById('media-on').checked=mOn;
+    document.getElementById('media-type').value=mType; document.getElementById('media-url').value=mUrl;
+
+    renderSteps(); toggleMedia(); previewMedia();
+    document.getElementById('edit-banner').style.display='flex';
+    document.getElementById('edit-key-label').textContent=key;
+    document.getElementById('btn-save-txt').textContent='Update Payload';
+    
+    switchMainTab('create');
+    goToStep(1);
+    window.scrollTo(0,0);
+  });
+}
+
+function cancelEdit(){
+  editKey=null;
+  document.getElementById('edit-banner').style.display='none';
+  document.getElementById('btn-save-txt').textContent='Deploy Payload';
+  resetForm(); goToStep(1); toast('Edit cancelled');
+}
+
+async function delPayload(key){
+  if(!confirm('Delete "'+key+'"?')) return;
+  try{
+    const snap=await db.ref('locked_contents/'+key).once('value');
+    if(snap.exists()){
+      const d=snap.val();
+      if(d._tg_msg_id){
+        await fetch('https://api.telegram.org/bot'+TG_TOKEN+'/deleteMessage',{ method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({chat_id:TG_CHAT,message_id:d._tg_msg_id}) }).catch(()=>{});
+      }
+      await db.ref('locked_contents/'+key).remove();
+      toast('Deleted','ok');
+    }
+  }catch(e){}
+}
+
+function resetForm(){
+  setDestValue(''); setMode('url'); steps=[]; addStep();
+  mediaOn=false; document.getElementById('media-on').checked=false;
+  document.getElementById('media-url').value='';
+  document.getElementById('media-cfg').style.display='none';
+  document.getElementById('media-preview').style.display='none';
+}
+
+window.onload=()=>{
+  addStep(); checkDraft();
+};
+</script>
+</body>
+</html>
